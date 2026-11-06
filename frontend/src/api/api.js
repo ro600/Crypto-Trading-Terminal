@@ -1,13 +1,8 @@
 import axios from 'axios';
 
-const configuredApiUrl = process.env.REACT_APP_API_URL?.trim();
-const apiBaseURL = configuredApiUrl || (
-  process.env.NODE_ENV === 'development' ? 'http://localhost:5000/api' : ''
+const apiBaseURL = process.env.REACT_APP_API_URL?.trim() || (
+  process.env.NODE_ENV === 'development' ? 'http://localhost:5000/api' : '/api'
 );
-
-if (!apiBaseURL) {
-  throw new Error('Set REACT_APP_API_URL to the deployed Express API URL before building for production.');
-}
 
 const api = axios.create({
   baseURL: apiBaseURL.replace(/\/$/, ''),

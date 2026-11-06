@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useSocket } from '../context/SocketContext';
 import { fetchPrices, fetchHistory, addToWatchlist, fetchWatchlist } from '../api/api';
 import SearchBar from '../components/SearchBar';
 import PriceChart from '../components/PriceChart';
@@ -19,7 +18,6 @@ const formatVolume = (v) => {
 };
 
 export default function Dashboard() {
-  const { marketData, lastUpdated } = useSocket();
   const [prices, setPrices] = useState([]);
   const [pricesLoading, setPricesLoading] = useState(true);
   const [pricesError, setPricesError] = useState('');
@@ -52,24 +50,13 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadPrices();
+    const interval = window.setInterval(loadPrices, 30_000);
     fetchWatchlist().then((res) => {
       const wl = Array.isArray(res.data) ? res.data : [];
       setWatchlistIds(new Set(wl.map((i) => i.cryptoId)));
     }).catch(() => {});
+    return () => window.clearInterval(interval);
   }, [loadPrices]);
-
-  useEffect(() => {
-    if (Array.isArray(marketData) && marketData.length > 0) {
-      setPrices(marketData);
-      setPricesError('');
-      setPricesLoading(false);
-      setSelectedCoin((current) => {
-        if (!current) return current;
-        const updated = marketData.find((coin) => coin.id === current.id);
-        return updated ? { ...current, ...updated } : current;
-      });
-    }
-  }, [marketData]);
   const loadHistory = useCallback(async (coinId, days) => {
     if (!coinId) return;
     setChartLoading(true);
@@ -128,9 +115,7 @@ export default function Dashboard() {
               <div className="card-header" style={{ marginBottom: 0 }}>Live Market Prices</div>
               <div className="live-indicator">
                 <div className="live-dot" />
-                {lastUpdated
-                  ? `Updated ${Math.round((new Date() - lastUpdated) / 1000)}s ago`
-                  : 'Auto-refreshing every 30s'}
+                Auto-refreshing every 30s
               </div>
             </div>
 
