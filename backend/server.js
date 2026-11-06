@@ -405,7 +405,10 @@ app.use(async (req, res, next) => {
   }
 });
 
-const handler = (req, res) => app(req, res);
+const handler = (req, res) => {
+  if (req.query.path) req.url = `/${req.query.path}`;
+  app(req, res);
+};
 module.exports = { app, handler };
 
 if (require.main === module) {
