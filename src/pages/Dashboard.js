@@ -1,0 +1,229 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { useSocket } from '../context/SocketContext';
+import { fetchPrices, fetchHistory, addToWatchlist, fetchWatchlist } from '../api/api';
+import SearchBar from '../components/SearchBar';
+import PriceChart from '../components/PriceChart';
+import TradePanel from '../components/TradePanel';
+import toast from 'react-hot-toast';
+
+const formatPrice = (v) => {
+  if (!v && v !== 0) return '$0.00';
+  if (v >= 1) return `$${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `$${v.toFixed(6)}`;
+};
+
+const formatVolume = (v) => {
+  if (v >= 1e9) return `$${(v / 1e9).toFixed(1)}B`;
+  if (v >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
+  return `$${v.toLocaleString()}`;
+};
+
+export default function Dashboard() {
+  const { marketData, lastUpdated } = useSocket();
+  const [prices, setPrices] = useState([]);
+  const [pricesLoading, setPricesLoading] = useState(true);
+  const [pricesError, setPricesError] = useState('');
+  const [selectedCoin, setSelectedCoin] = useState(null);
+  const [historyData, setHistoryData] = useState([]);
+  const [selectedDays, setSelectedDays] = useState(7);
+  const [chartLoading, setChartLoading] = useState(false);
+  const [watchlistIds, setWatchlistIds] = useState(new Set());
+  const [tradeKey, setTradeKey] = useState(0);
+
+  const loadPrices = useCallback(async () => {
+    setPricesLoading(true);
+    setPricesError('');
+    try {
+      const res = await fetchPrices();
+      const data = Array.isArray(res.data) ? res.data : [];
+      setPrices(data);
+      if (data.length > 0) setSelectedCoin((current) => current || data[0]);
+      if (data.length === 0) setPricesError('No market data is available right now.');
+    } catch (err) {
+      setPricesError(err.code === 'ECONNABORTED'
+        ? 'The market data request timed out. Check the backend and try again.'
+        : err.response
+          ? 'Could not load market data. Check the backend and try again.'
+          : 'Cannot reach the backend API. Check your connection and try again.');
+    } finally {
+      setPricesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadPrices();
+    fetchWatchlist().then((res) => {
+      const wl = Array.isArray(res.data) ? res.data : [];
+      setWatchlistIds(new Set(wl.map((i) => i.cryptoId)));
+    }).catch(() => {});
+  }, [loadPrices]);
+
+  useEffect(() => {
+    if (Array.isArray(marketData) && marketData.length > 0) {
+      setPrices(marketData);
+      setPricesError('');
+      setPricesLoading(false);
+      setSelectedCoin((current) => {
+        if (!current) return current;
+        const updated = marketData.find((coin) => coin.id === current.id);
+        return updated ? { ...current, ...updated } : current;
+      });
+    }
+  }, [marketData]);
+  const loadHistory = useCallback(async (coinId, days) => {
+    if (!coinId) return;
+    setChartLoading(true);
+    try {
+      const res = await fetchHistory(coinId, days);
+      setHistoryData(res.data);
+    } catch {
+      setHistoryData([]);
+    } finally {
+      setChartLoading(false);
+    }
+  }, []);
+
+  const selectedCoinId = selectedCoin?.id;
+  useEffect(() => {
+    if (selectedCoinId) loadHistory(selectedCoinId, selectedDays);
+  }, [selectedCoinId, selectedDays, loadHistory]);
+
+  const handleCoinSelect = (coin) => {
+    const marketCoin = prices.find((p) => p.id === coin.id);
+    if (marketCoin) {
+      setSelectedCoin(marketCoin);
+    } else {
+      setSelectedCoin({ ...coin, price: 0, change24h: 0, volume24h: 0 });
+    }
+  };
+
+  const handleRowClick = (coin) => setSelectedCoin(coin);
+
+  const handleAddWatchlist = async (e, coin) => {
+    e.stopPropagation();
+    if (watchlistIds.has(coin.id)) {
+      toast('Already in watchlist', { icon: '⭐' });
+      return;
+    }
+    try {
+      await addToWatchlist({ cryptoId: coin.id, symbol: coin.symbol, name: coin.name });
+      setWatchlistIds((prev) => new Set([...prev, coin.id]));
+      toast.success(`${coin.name} added to watchlist`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to add');
+    }
+  };
+
+  return (
+    <div>
+      <div style={{ marginBottom: 20 }}>
+        <SearchBar onSelectCoin={handleCoinSelect} />
+      </div>
+
+      <div className="dashboard-grid">
+        {}
+        <div className="dashboard-left">
+          <div className="card">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div className="card-header" style={{ marginBottom: 0 }}>Live Market Prices</div>
+              <div className="live-indicator">
+                <div className="live-dot" />
+                {lastUpdated
+                  ? `Updated ${Math.round((new Date() - lastUpdated) / 1000)}s ago`
+                  : 'Auto-refreshing every 30s'}
+              </div>
+            </div>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table className="market-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Asset</th>
+                    <th>Price</th>
+                    <th>24h %</th>
+                    <th>Volume</th>
+                    <th>Watch</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {prices.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: 48 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                          {pricesLoading ? (
+                            <>
+                              <div className="spinner" style={{ width: 32, height: 32 }} />
+                              <span className="loading-text">Fetching live market data...</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="loading-text">{pricesError || 'No market data is available right now.'}</span>
+                              <button className="btn-primary" type="button" onClick={loadPrices}>
+                                Retry
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    prices.map((coin) => (
+                      <tr
+                        key={coin.id}
+                        onClick={() => handleRowClick(coin)}
+                        className={selectedCoin?.id === coin.id ? 'selected' : ''}
+                      >
+                        <td className="coin-rank">{coin.rank}</td>
+                        <td>
+                          <div className="coin-info">
+                            {coin.image && <img src={coin.image} alt={coin.name} />}
+                            <div>
+                              <div className="coin-name">{coin.name}</div>
+                              <div className="coin-symbol">{coin.symbol}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="price">{formatPrice(coin.price)}</td>
+                        <td>
+                          <span className={coin.change24h >= 0 ? 'change-positive' : 'change-negative'}>
+                            {coin.change24h >= 0 ? '+' : ''}{coin.change24h?.toFixed(2)}%
+                          </span>
+                        </td>
+                        <td className="volume-text">{formatVolume(coin.volume24h)}</td>
+                        <td>
+                          <button
+                            className={`watch-btn ${watchlistIds.has(coin.id) ? 'watching' : ''}`}
+                            onClick={(e) => handleAddWatchlist(e, coin)}
+                          >
+                            {watchlistIds.has(coin.id) ? '★' : '+ Add'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {}
+        <div className="dashboard-right">
+          <PriceChart
+            coin={selectedCoin}
+            historyData={historyData}
+            selectedDays={selectedDays}
+            onDaysChange={setSelectedDays}
+            loading={chartLoading}
+          />
+          <TradePanel
+            key={tradeKey}
+            coin={selectedCoin}
+            onTradeSuccess={() => setTradeKey((k) => k + 1)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
