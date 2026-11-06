@@ -2,8 +2,9 @@
   "name": "crypto-trading-terminal",
   "version": "1.0.0",
   "private": true,
+  "workspaces": ["frontend", "backend"],
   "scripts": {
-    "start": "npm --prefix frontend start",
-    "build": "npm --prefix frontend run build"
+    "start": "npm run start --workspace frontend",
+    "build": "npm run build --workspace frontend"
   }
 }
