@@ -1,6 +1,6 @@
 # Cryptocurrency Trading Terminal
 
-A web-based cryptocurrency trading terminal designed for real-time market monitoring and risk-free simulated trading.
+A web-based cryptocurrency trading terminal designed for real-time market monitoring and risk-free simulated trading. 
 
 The system allows users to monitor cryptocurrency prices, view interactive charts, manage watchlists, track their virtual portfolio, and perform simulated buy/sell transactions using virtual funds.
 
