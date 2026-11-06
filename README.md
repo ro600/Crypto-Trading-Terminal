@@ -49,7 +49,7 @@ vercel.json Vercel build and routing settings
    npm run dev --workspace frontend
    ```
 
-Open the Vite URL shown in the frontend terminal (usually `http://localhost:5173`). The API runs at `http://localhost:5000/api`.
+Open the URL shown in the frontend terminal (usually `http://localhost:5173`). The API runs at `http://localhost:5000/api`.
 
 ## Deployment
 
