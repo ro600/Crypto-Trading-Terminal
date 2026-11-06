@@ -79,7 +79,9 @@ html {
 
 body {
   font-family: var(--font-ui);
-  background: var(--bg-base);
+  background:
+    radial-gradient(circle at 85% -10%, rgba(102, 126, 234, 0.12), transparent 34rem),
+    var(--bg-base);
   color: var(--text-primary);
   min-height: 100vh;
   line-height: 1.6;
@@ -327,7 +329,6 @@ input { font-family: inherit; outline: none; }
   margin-bottom: 18px;
 }
 
-
 .page-title {
   font-family: var(--font-heading);
   font-size: 26px;
@@ -339,7 +340,6 @@ input { font-family: inherit; outline: none; }
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
-
 
 .dashboard-grid {
   display: grid;
