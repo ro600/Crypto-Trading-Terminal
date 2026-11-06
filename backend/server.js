@@ -60,6 +60,30 @@ const marketCache = new Map();
 
 app.use(express.json({ limit: '32kb' }));
 
+let databaseConnection;
+async function connectDatabase() {
+  if (!databaseConnection) {
+    databaseConnection = mongoose.connect(MONGODB_URI).then(async () => {
+      await Promise.all([User.init(), Transaction.init()]);
+      return mongoose.connection;
+    }).catch((error) => {
+      databaseConnection = null;
+      throw error;
+    });
+  }
+  return databaseConnection;
+}
+
+app.use(async (req, res, next) => {
+  try {
+    await connectDatabase();
+    next();
+  } catch (error) {
+    console.error(`Failed to connect to MongoDB (${error.name}). Check MONGODB_URI, Atlas network access, and database credentials.`);
+    res.status(503).json({ message: 'Database is temporarily unavailable' });
+  }
+});
+
 function publicUser(user) {
   return {
     _id: user._id,
@@ -381,32 +405,8 @@ app.use((error, req, res, next) => {
   res.status(500).json({ message: 'Internal server error' });
 });
 
-let databaseConnection;
-async function connectDatabase() {
-  if (!databaseConnection) {
-    databaseConnection = mongoose.connect(MONGODB_URI).then(async () => {
-      await Promise.all([User.init(), Transaction.init()]);
-      return mongoose.connection;
-    }).catch((error) => {
-      databaseConnection = null;
-      throw error;
-    });
-  }
-  return databaseConnection;
-}
-
-app.use(async (req, res, next) => {
-  try {
-    await connectDatabase();
-    next();
-  } catch (error) {
-    console.error(`Failed to connect to MongoDB (${error.name}). Check MONGODB_URI, Atlas network access, and database credentials.`);
-    res.status(503).json({ message: 'Database is temporarily unavailable' });
-  }
-});
-
 const handler = (req, res) => {
-  if (req.query.path) req.url = `/${req.query.path}`;
+  if (req.query.path) req.url = `/api/${String(req.query.path).replace(/^\/+/, '')}`;
   app(req, res);
 };
 module.exports = { app, handler };

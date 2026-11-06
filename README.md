@@ -181,7 +181,8 @@ Open the Vite URL shown in the terminal (usually `http://localhost:5173`). The d
 ```text
 Cryptocurrency-Trading-Terminal/
 ├── frontend/           React app (src/, public/, package files)
-├── backend/            Express API (server.js, api/, package files)
+├── backend/            Express API implementation and package files
+├── api/                Vercel Function entry point for the Express API
 ├── README.md
 ├── vercel.json         Vercel build and routing configuration
 ├── package.json        Root scripts and Vercel install metadata
