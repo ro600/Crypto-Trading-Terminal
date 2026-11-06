@@ -159,28 +159,23 @@ Maintains a record of simulated buying and selling activities.
 
 ## Running the Web Application
 
-For local development, open two terminals in the project root. The backend needs a configured `backend/.env` file with your MongoDB connection string and JWT secret.
+Copy `backend/.env.example` to `backend/.env`, then set your MongoDB Atlas URI and JWT secret. From the repository root, install dependencies once with `npm ci`.
 
-**Terminal 1 - backend** :
-
-```powershell
-cd backend
-npm run dev
-```
-
-If the terminal prompt already ends in `\server>`, run `npm run dev` directly without entering `cd backend` again.
-
-**Terminal 2 - frontend** :
+**Terminal 1 - backend:**
 
 ```powershell
-npm ci
-npm start
+npm run dev --workspace backend
 ```
 
-Open `http://localhost:3000` in your browser. Market data requires internet access to CoinGecko. Use **Try Demo Account** or register an account to get started.
+**Terminal 2 - frontend:**
+
+```powershell
+npm run dev --workspace frontend
+```
+
+Open the Vite URL shown in the terminal (usually `http://localhost:5173`). The development frontend calls the API at `http://localhost:5000/api`. Market data requires internet access to CoinGecko. Use **Try Demo Account** or register to get started.
 
 ---
-
 ## Project Structure
 
 ```text
@@ -207,11 +202,11 @@ Deploy the complete repository as **one Vercel project**. MongoDB Atlas remains 
 5. In MongoDB Atlas, allow network access from Vercel. For a simple personal setup Atlas permits `0.0.0.0/0`; keep database credentials private and limited.
 6. Deploy. Open the Vercel URL and use **Try Demo Account** or register. Check `https://<your-vercel-domain>/api/health` for API health.
 
-Do not set `REACT_APP_API_URL` or `REACT_APP_SOCKET_URL` for production: the frontend uses the same-domain `/api` route. Redeploy after changing environment variables.
+Do not set `VITE_API_URL` for production: the frontend uses the same-domain `/api` route. For local development, `frontend/.env.example` shows the optional API URL. Redeploy after changing environment variables.
 
 ### Local Development
 
-Copy `backend/.env.example` to `backend/.env`, then set `MONGODB_URI` and `JWT_SECRET`. Start the API with `cd backend; npm ci; npm run dev` and the frontend in another terminal with `cd frontend; npm ci; npm start`. In development, the frontend calls `http://localhost:5000/api`.
+Copy `backend/.env.example` to `backend/.env`, then set `MONGODB_URI` and `JWT_SECRET`. From the repository root, run `npm ci` once. Start the API with `npm run dev --workspace backend` and the frontend in another terminal with `npm run dev --workspace frontend`. In development, the frontend calls `http://localhost:5000/api`.
 
 ---
 ## Security and Risk Considerations
@@ -241,4 +236,5 @@ It uses virtual funds and does not execute real cryptocurrency trades or provide
 ## License
 
 This project was developed as an academic software engineering project.
+
 
