@@ -13,7 +13,14 @@ export default function Navbar() {
   useEffect(() => {
     const handler = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
-      if (mobileNavRef.current && !mobileNavRef.current.contains(e.target)) setMobileNavOpen(false);
+      const clickedNavigation = e.target.closest?.('#primary-navigation');
+      if (
+        mobileNavRef.current &&
+        !mobileNavRef.current.contains(e.target) &&
+        !clickedNavigation
+      ) {
+        setMobileNavOpen(false);
+      }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
