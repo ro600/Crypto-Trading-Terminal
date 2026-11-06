@@ -241,6 +241,14 @@ app.post('/api/auth/demo', asyncRoute(async (req, res) => {
       if (!user) return res.status(409).json({ message: 'The demo account email is already in use' });
     }
   }
+
+  // The demo account is shared, so give each new demo login a clean portfolio.
+  user.virtualBalance = 100_000;
+  user.holdings = [];
+  user.watchlist = [];
+  await user.save();
+  await Transaction.deleteMany({ userId: user._id });
+
   return sendAuthResponse(res, user);
 }));
 

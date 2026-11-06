@@ -201,7 +201,7 @@ Deploy the complete repository as **one Vercel project**. MongoDB Atlas remains 
 3. Keep the build command as `npm run build` and output directory as `frontend/build`; the root `vercel.json` configures these values.
 4. In **Project Settings → Environment Variables**, add `MONGODB_URI` (your MongoDB Atlas connection string) and `JWT_SECRET` (a private random value of at least 32 characters).
 5. In MongoDB Atlas, allow network access from Vercel. For a simple personal setup Atlas permits `0.0.0.0/0`; keep database credentials private and limited.
-6. Deploy. Open the Vercel URL and use **Try Demo Account** or register. Check `https://<your-vercel-domain>/api/health` for API health.
+6. Deploy. Open the Vercel URL and use **Try Demo Account** or register. The shared demo account resets to $100,000 with empty holdings, watchlist, and transaction history each time someone logs in. Check `https://<your-vercel-domain>/api/health` for API health.
 
 Do not set `VITE_API_URL` for production: the frontend uses the same-domain `/api` route. For local development, `frontend/.env.example` shows the optional API URL. Redeploy after changing environment variables.
 
