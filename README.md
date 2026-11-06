@@ -1,4 +1,4 @@
-# Cryptocurrency Trading Terminal
+﻿# Cryptocurrency Trading Terminal
 
 A web-based cryptocurrency trading terminal designed for real-time market monitoring and risk-free simulated trading. 
 
@@ -32,7 +32,7 @@ Users can monitor market conditions, manage virtual assets, execute paper trades
 
 ## System Overview
 
-The application consists of a React frontend, a persistent Express API, MongoDB Atlas, and Socket.IO for live market updates. The frontend and backend are deployed separately so the backend can maintain WebSocket connections. MongoDB Atlas is the application's only database.
+The application consists of a React frontend, an Express API deployed as a Vercel Function, and MongoDB Atlas. Both parts are served by one Vercel project on the same domain. Market prices refresh every 30 seconds using HTTP requests.
 
 ```text
                     +---------------------+
@@ -159,16 +159,16 @@ Maintains a record of simulated buying and selling activities.
 
 ## Running the Web Application
 
-For local development, open two terminals in the project root. The backend needs a configured `server/.env` file with your MongoDB connection string and JWT secret.
+For local development, open two terminals in the project root. The backend needs a configured `backend/.env` file with your MongoDB connection string and JWT secret.
 
 **Terminal 1 - backend** :
 
 ```powershell
-cd server
+cd backend
 npm run dev
 ```
 
-If the terminal prompt already ends in `\server>`, run `npm run dev` directly without entering `cd server` again.
+If the terminal prompt already ends in `\server>`, run `npm run dev` directly without entering `cd backend` again.
 
 **Terminal 2 - frontend** :
 
@@ -185,43 +185,35 @@ Open `http://localhost:3000` in your browser. Market data requires internet acce
 
 ```text
 Cryptocurrency-Trading-Terminal/
-│
-├── public/
-├── server/
-│   ├── package.json
-│   └── server.js
-├── src/
-│   ├── api/
-│   ├── components/
-│   ├── context/
-│   └── pages/
-├── package.json
+├── frontend/           React app (src/, public/, package files)
+├── backend/            Express API (server.js, api/, package files)
 ├── README.md
-└── ...
+├── vercel.json         Vercel build and routing configuration
+├── package.json        Root scripts and Vercel install metadata
+├── package-lock.json
+└── .gitignore
 ```
 
 ## Production Deployment
 
-Deploy the React frontend to Vercel and deploy the persistent Express backend to Render. MongoDB Atlas stores all users, portfolios, watchlists, and transactions. The backend deployment must support long-running Node.js processes and WebSocket connections for Socket.IO.
+Deploy the complete repository as **one Vercel project**. MongoDB Atlas remains the database; Render is not used. The API runs as a Vercel Function. Market data refreshes with 30-second HTTP polling because Vercel Functions are stateless and do not maintain Socket.IO connections.
 
-### Frontend on Vercel
+### Deploy to Vercel
 
-Import the repository into Vercel, keep the project root as the root directory, and set `REACT_APP_API_URL` to the backend URL ending in `/api`, for example `https://your-service.onrender.com/api`. Set `REACT_APP_SOCKET_URL` to the backend origin, for example `https://your-service.onrender.com`. The React build uses `npm run build` and outputs `build/`.
+1. Push this repository to GitHub and import it in Vercel using **Add New → Project**.
+2. Keep **Root Directory** set to `./` (the repository root), not `frontend` or `backend`.
+3. Keep the build command as `npm run build` and output directory as `frontend/build`; the root `vercel.json` configures these values.
+4. In **Project Settings → Environment Variables**, add `MONGODB_URI` (your MongoDB Atlas connection string) and `JWT_SECRET` (a private random value of at least 32 characters).
+5. In MongoDB Atlas, allow network access from Vercel. For a simple personal setup Atlas permits `0.0.0.0/0`; keep database credentials private and limited.
+6. Deploy. Open the Vercel URL and use **Try Demo Account** or register. Check `https://<your-vercel-domain>/api/health` for API health.
 
-### Backend on Render
+Do not set `REACT_APP_API_URL` or `REACT_APP_SOCKET_URL` for production: the frontend uses the same-domain `/api` route. Redeploy after changing environment variables.
 
-Create a Web Service from this repository using `server` as the root directory. Use `npm ci` as the build command and `npm start` as the start command. Set these environment variables in the service settings:
+### Local Development
 
-* `MONGODB_URI`: MongoDB Atlas connection string
-* `JWT_SECRET`: random secret of at least 32 characters
-* `CLIENT_URL`: exact Vercel site URL; comma-separated additional trusted URLs are supported
-
-The backend listens on `process.env.PORT` and connects to MongoDB Atlas. Configure Atlas network access to allow the service to connect. `render.yaml` contains the service settings, and `vercel.json` configures client-side React routes.
-
-For local development, copy `.env.example` to `.env` and `server/.env.example` to `server/.env`, then fill in your MongoDB Atlas URI and a private JWT secret. The root `.env.example` configures local API and Socket.IO URLs.
+Copy `backend/.env.example` to `backend/.env`, then set `MONGODB_URI` and `JWT_SECRET`. Start the API with `cd backend; npm ci; npm run dev` and the frontend in another terminal with `cd frontend; npm ci; npm start`. In development, the frontend calls `http://localhost:5000/api`.
 
 ---
-
 ## Security and Risk Considerations
 
 The project considers several potential risks:
@@ -249,3 +241,4 @@ It uses virtual funds and does not execute real cryptocurrency trades or provide
 ## License
 
 This project was developed as an academic software engineering project.
+

@@ -1,17 +1,12 @@
 require('dotenv').config();
 
 const bcrypt = require('bcryptjs');
-const cors = require('cors');
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
-const { createServer } = require('node:http');
 const { randomBytes } = require('node:crypto');
-const { Server } = require('socket.io');
 
 const PORT = Number(process.env.PORT || 5000);
-const CLIENT_URLS = (process.env.CLIENT_URL || process.env.FRONTEND_URL || 'http://localhost:3000')
-  .split(',').map((url) => url.trim()).filter(Boolean);
 const MONGODB_URI = process.env.MONGODB_URI;
 const JWT_SECRET = process.env.JWT_SECRET;
 const MARKET_CACHE_MS = 30_000;
@@ -61,30 +56,8 @@ const User = mongoose.model('User', userSchema);
 const Transaction = mongoose.model('Transaction', transactionSchema);
 
 const app = express();
-const httpServer = createServer(app);
-const io = new Server(httpServer, {
-  cors: {
-    origin: (origin, callback) => {
-      if (!origin || CLIENT_URLS.includes(origin) || /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error('Origin is not allowed by CORS'));
-    },
-    methods: ['GET', 'POST'],
-    credentials: true,
-  },
-});
 const marketCache = new Map();
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || CLIENT_URLS.includes(origin) || /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error('Origin is not allowed by CORS'));
-  },
-  credentials: true,
-}));
 app.use(express.json({ limit: '32kb' }));
 
 function publicUser(user) {
@@ -408,24 +381,33 @@ app.use((error, req, res, next) => {
   res.status(500).json({ message: 'Internal server error' });
 });
 
-async function broadcastMarketPrices() {
-  try {
-    io.emit('market_update', await getMarketPrices());
-  } catch (error) {
-    console.error(`Market data update failed: ${error.message}`);
+let databaseConnection;
+async function connectDatabase() {
+  if (!databaseConnection) {
+    databaseConnection = mongoose.connect(MONGODB_URI).then(async () => {
+      await Promise.all([User.init(), Transaction.init()]);
+      return mongoose.connection;
+    }).catch((error) => {
+      databaseConnection = null;
+      throw error;
+    });
   }
+  return databaseConnection;
 }
 
-async function start() {
-  await mongoose.connect(MONGODB_URI);
-  await Promise.all([User.init(), Transaction.init()]);
-  console.log('Connected to MongoDB');
-  httpServer.listen(PORT, () => console.log(`API server listening on http://localhost:${PORT}`));
-  broadcastMarketPrices();
-  setInterval(broadcastMarketPrices, MARKET_CACHE_MS);
-}
-
-start().catch((error) => {
-  console.error(`Failed to start API server (${error.name}). Check MONGODB_URI, Atlas network access, and database credentials.`);
-  process.exitCode = 1;
+app.use(async (req, res, next) => {
+  try {
+    await connectDatabase();
+    next();
+  } catch (error) {
+    console.error(`Failed to connect to MongoDB (${error.name}). Check MONGODB_URI, Atlas network access, and database credentials.`);
+    res.status(503).json({ message: 'Database is temporarily unavailable' });
+  }
 });
+
+const handler = (req, res) => app(req, res);
+module.exports = { app, handler };
+
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`API server listening on http://localhost:${PORT}`));
+}
