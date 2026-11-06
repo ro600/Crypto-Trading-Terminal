@@ -51,6 +51,6 @@ vercel.json Vercel build and routing settings
 
 Open the URL shown in the frontend terminal (usually `http://localhost:5173`). The API runs at `http://localhost:5000/api`.
 
-## Deployment
+## Deployment 
 
 The app is deployed on Vercel and uses MongoDB Atlas. Use **Try Demo Account** to explore the paper-trading features; each demo session starts with $100,000 in virtual funds.
